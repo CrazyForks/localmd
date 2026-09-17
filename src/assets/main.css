@@ -908,7 +908,9 @@
 .cm-editor .cm-gutters {
   width: 2.5rem;
 }
-/* The content is the preview's column: `max-w-3xl`, centred, `px-8 py-6`. The
+/* The content is the preview's column: `max-w-3xl`, centred, `px-8 pt-6 pb-32`
+   — the long bottom is there so the last line scrolls clear of the window's
+   edge, in both. The
    vertical padding is the content's and not the scroller's because CodeMirror
    measures it and starts the numbers the same distance down — on the scroller
    it would push the gutter itself off the pane's top edge. `flex` is spelled
@@ -920,7 +922,7 @@
   min-width: 0;
   max-width: 48rem;
   margin: 0 auto;
-  padding: 1.5rem 2rem;
+  padding: 1.5rem 2rem 8rem;
 }
 
 /* What the preview gives `li { my-1 }`: air between the items of a list, which

@@ -185,10 +185,13 @@ watch(
 
 <template>
   <div ref="scroller" class="h-full panel-scroll">
+    <!-- `pb-32`, not the `py-6` the top has: the last line of a page should
+         scroll up to where it can be read, not stop against the window's edge.
+         The editor's column ends with the same gap (main.css). -->
     <!-- eslint-disable-next-line vue/no-v-html -->
     <div
       ref="root"
-      class="md-preview md-interactive max-w-3xl mx-auto px-8 py-6"
+      class="md-preview md-interactive max-w-3xl mx-auto px-8 pt-6 pb-32"
       v-html="html"
       @click="onClick"
       @mouseover="quoteOnHover"
