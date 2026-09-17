@@ -195,7 +195,7 @@ export function configProblem() {
   return missing.length ? json({ error: 'trial_off', missing }, 503) : null
 }
 
-const MODEL = 'deepseek-v4-flash'
+const MODEL = 'deepseek-flash'
 const UPSTREAM = 'https://api.deepseek.com/v1/chat/completions'
 const MAX_TOKENS = 1500
 
@@ -217,7 +217,9 @@ const SESSION_OUTPUT_TOKENS = 12_000
 const SESSION_TTL_S = 60 * 60
 
 /**
- * deepseek-v4-flash list price, USD per million tokens (2026-08).
+ * deepseek-v4-flash list price, USD per million tokens (2026-08). The id is
+ * `deepseek-flash` now; the rename was not carried through to these rates, so
+ * read them as an estimate rather than the current sheet.
  *
  * Cached input is fifty times cheaper than uncached, which is far too big a
  * gap to average over: an agent loop re-sends its prefix every step, so most

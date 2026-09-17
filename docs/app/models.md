@@ -79,7 +79,7 @@ point the **Image generation** role at the one that draws.
 
 - Is your model already ticked for **reads pictures**? Then no — point the
   vision role at that same model, or leave it empty if it is your primary.
-- Using a text-only model (deepseek-v4-flash, for example)? Point the vision
+- Using a text-only model (deepseek-flash, for example)? Point the vision
   role at a separate model that does read pictures. The agent will call it
   when needed.
 

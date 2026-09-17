@@ -467,7 +467,7 @@ function slotBadges(p: LlmProfile): string[] {
                   v-model="editing.model"
                   class="input"
                   list="model-suggestions"
-                  :placeholder="presetFor(editing.provider)?.defaultModel || 'e.g. gpt-4.1, deepseek-v4-flash'"
+                  :placeholder="presetFor(editing.provider)?.defaultModel || 'e.g. gpt-4.1, deepseek-flash'"
                 />
                 <datalist id="model-suggestions">
                   <option v-for="m in presetFor(editing.provider)?.models ?? []" :key="m" :value="m" />

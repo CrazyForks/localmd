@@ -157,7 +157,9 @@ export function forgetTrial(): void {
  * On our own origin, so no CORS question arises, and the key on the wire is a
  * session token that expires within the hour rather than anything of the
  * user's. The endpoint decides the model; the value here only fills the
- * profile's label.
+ * profile's label, and it has to name the model `api/_trial.js` actually
+ * serves — the label is the one place a wrong model id stays invisible until
+ * a user reads it back to you.
  *
  * The path is recorded here, but the profile that actually reaches the SDK
  * carries the absolute form — see `trialBaseUrl` above, and do not "simplify"
@@ -173,7 +175,7 @@ export const TRIAL_PRESET: ProviderPreset = {
   label: 'Free trial',
   sdk: 'openai-compatible',
   baseUrl: '/api/trial/v1',
-  defaultModel: 'deepseek-chat',
+  defaultModel: 'deepseek-flash',
   internal: true,
 }
 
