@@ -5,9 +5,10 @@ summary: The editor shows your writing the way it will look while still being th
 
 # Writing and formatting notes
 
-Open any note and press **Edit**. What you get is a markdown editor that tries
-to stay out of the way: headings look like headings, bold text looks bold, and
-the symbols that make them so are hidden until you need them.
+Open any note and press the pencil button at its top right (**Edit**). What you
+get is a markdown editor that tries to stay out of the way: headings look like
+headings, bold text looks bold, and the symbols that make them so are hidden
+until you need them.
 
 ## The line you are on is always the truth
 

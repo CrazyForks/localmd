@@ -678,13 +678,14 @@ function goToGraphHit(i = graphHit.value): void {
               </button>
               <button
                 class="btn text-xs shadow-sm"
+                :title="files.mode === 'edit' ? $t('common.preview') : $t('common.edit')"
+                :aria-label="files.mode === 'edit' ? $t('common.preview') : $t('common.edit')"
                 @click="files.mode = files.mode === 'edit' ? 'preview' : 'edit'"
               >
                 <span
-                  class="codicon codicon-sm mr-1"
+                  class="codicon codicon-sm"
                   :class="files.mode === 'edit' ? 'codicon-open-preview' : 'codicon-edit'"
                 />
-                {{ files.mode === 'edit' ? $t('common.preview') : $t('common.edit') }}
               </button>
             </div>
 
