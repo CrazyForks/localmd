@@ -73,6 +73,17 @@ const quoteOnHover = useCiteQuote()
 type ToolPart = Extract<MessagePart, { type: 'tool' }>
 type ThinkPart = Extract<MessagePart, { type: 'thinking' }>
 
+/** Whole seconds since a part started, for the two live timers below.
+ *
+ *  Clamped at zero, and that is not belt-and-braces. `now` is a one-second
+ *  tick, so a part starting just after a tick is briefly NEWER than the clock
+ *  reading it; `Math.floor` turns that sub-second negative into `-1`, and the
+ *  row showed `-1s` for up to a second at the start of every thought and every
+ *  tool call. Elapsed time cannot be negative, so the display says so. */
+function liveSeconds(startedAt: number): number {
+  return Math.max(0, Math.floor((now.value - startedAt) / 1000))
+}
+
 /* ── tool rows ───────────────────────────────────────────────────────────── */
 
 /** Glyph, label, tone and expandability all come from lib/present, which the
@@ -86,7 +97,7 @@ const TOOL_TONE: Record<CallTone, string> = {
 
 function toolTime(part: ToolPart): string {
   if (part.status === 'running') {
-    return `${Math.floor((now.value - (part.startedAt ?? now.value)) / 1000)}s`
+    return `${liveSeconds(part.startedAt ?? now.value)}s`
   }
   return formatDuration(part.elapsedMs ?? 0)
 }
@@ -127,7 +138,7 @@ async function copyBlock(e: MouseEvent, text: string): Promise<void> {
 function thinkTime(part: ThinkPart): string {
   if (part.elapsedMs != null) return formatDuration(part.elapsedMs)
   if (part.startedAt == null) return ''
-  return `${Math.floor((now.value - part.startedAt) / 1000)}s`
+  return `${liveSeconds(part.startedAt)}s`
 }
 
 /* A thinking block stays folded — while it streams and after — unless the user
