@@ -43,6 +43,15 @@
   --c-border: 48 54 61;
   --c-added: 63 185 80;
   --c-removed: 248 81 73;
+  /* Code tokens (github-ish). Full colours, not triplets: nothing fades them.
+     One set for the preview's highlight.js classes and the editor's CodeMirror
+     highlighter, so a code block is the same colours either side of the toggle. */
+  --hl-comment: #8b949e;
+  --hl-keyword: #ff7b72;
+  --hl-string: #a5d6ff;
+  --hl-number: #79c0ff;
+  --hl-title: #d2a8ff;
+  --hl-variable: #ffa657;
 }
 
 :root[data-theme='light'] {
@@ -59,6 +68,12 @@
   --c-border: 208 215 222;
   --c-added: 26 127 55;
   --c-removed: 207 34 46;
+  --hl-comment: #6e7781;
+  --hl-keyword: #cf222e;
+  --hl-string: #0a3069;
+  --hl-number: #0550ae;
+  --hl-title: #8250df;
+  --hl-variable: #953800;
 }
 
 .codicon {
@@ -958,15 +973,6 @@
   font-weight: 600;
   line-height: 1.3;
 }
-/* CodeMirror's default highlight style underlines headings, which reads as a
-   mistake once they also have their own size. Its class names are generated
-   and unstable, so out-specify it rather than targeting them. */
-.cm-editor .cm-line[class*='cm-md-h'] > span {
-  text-decoration: none;
-}
-.cm-editor .cm-line[class*='cm-md-h'] .cm-md-link {
-  text-decoration: underline;
-}
 .cm-md-h1 {
   font-size: 1.6em;
 }
@@ -989,19 +995,46 @@
   padding-left: 0.75em;
   color: rgb(var(--c-fg-2));
 }
-.cm-md-bullet {
+/* Colours are the preview's, format for format (`.md-preview …` above): a
+   plain marker, accent-on-`bg-2` inline code, an accent link that underlines
+   only under the pointer. The `span` halves are for the highlighter, which
+   colours tokens in spans of its own INSIDE these marks — a colour set on the
+   mark alone is inherited by nothing that already has one. */
+.cm-md-bullet,
+.cm-md-ol,
+.cm-md-ol span {
+  color: rgb(var(--c-fg-1));
+}
+.cm-md-code,
+.cm-md-code span {
   color: rgb(var(--c-accent));
 }
 .cm-md-code {
-  background-color: rgb(var(--c-fg-3) / 0.12);
+  background-color: rgb(var(--c-bg-2));
   border-radius: 3px;
   padding: 0.05em 0.3em;
 }
-.cm-md-link {
+.cm-md-link,
+.cm-md-link span {
   color: rgb(var(--c-accent));
-  text-decoration: underline;
-  text-underline-offset: 2px;
+}
+.cm-md-link {
   cursor: pointer;
+}
+.cm-md-link:hover {
+  text-decoration: underline;
+}
+/* The preview's `th`: body colour at 600, not the heading the highlighter
+   takes a header row for. */
+.cm-editor .cm-md-th span {
+  color: rgb(var(--c-fg-1));
+  font-weight: 600;
+}
+/* Frontmatter is metadata about the page, not part of it — the preview does
+   not show it at all — so here it is the quietest thing on screen. */
+.cm-editor .cm-md-fm,
+.cm-editor .cm-md-fm span {
+  color: rgb(var(--c-fg-3));
 }
 .cm-md-task {
   vertical-align: -0.1em;
@@ -1202,29 +1235,19 @@
   top: 0;
 }
 
-/* ── highlight.js theme (github-ish, follows data-theme) ─────────────────── */
-.hljs-comment, .hljs-quote { color: #6e7781; font-style: italic; }
-.hljs-keyword, .hljs-selector-tag, .hljs-type, .hljs-meta { color: #cf222e; }
-.hljs-string, .hljs-regexp, .hljs-attr { color: #0a3069; }
-.hljs-number, .hljs-literal, .hljs-symbol, .hljs-bullet, .hljs-link { color: #0550ae; }
-.hljs-title, .hljs-function .hljs-title, .hljs-name, .hljs-section { color: #8250df; }
-.hljs-attribute, .hljs-variable, .hljs-template-variable, .hljs-built_in { color: #953800; }
+/* ── highlight.js theme (github-ish, follows data-theme) ───────────────────
+   The token colours are the `--hl-*` variables declared with the palettes; the
+   editor's highlighter (MarkdownEditor.vue) reads the same ones. */
+.hljs-comment, .hljs-quote { color: var(--hl-comment); font-style: italic; }
+.hljs-keyword, .hljs-selector-tag, .hljs-type, .hljs-meta { color: var(--hl-keyword); }
+.hljs-string, .hljs-regexp, .hljs-attr { color: var(--hl-string); }
+.hljs-number, .hljs-literal, .hljs-symbol, .hljs-bullet, .hljs-link { color: var(--hl-number); }
+.hljs-title, .hljs-function .hljs-title, .hljs-name, .hljs-section { color: var(--hl-title); }
+.hljs-attribute, .hljs-variable, .hljs-template-variable, .hljs-built_in { color: var(--hl-variable); }
 .hljs-addition { color: #116329; background: #dafbe1; }
 .hljs-deletion { color: #82071e; background: #ffebe9; }
 .hljs-emphasis { font-style: italic; }
 .hljs-strong { font-weight: 600; }
 
-:root[data-theme='dark'] .hljs-comment, :root[data-theme='dark'] .hljs-quote { color: #8b949e; }
-:root[data-theme='dark'] .hljs-keyword, :root[data-theme='dark'] .hljs-selector-tag,
-:root[data-theme='dark'] .hljs-type, :root[data-theme='dark'] .hljs-meta { color: #ff7b72; }
-:root[data-theme='dark'] .hljs-string, :root[data-theme='dark'] .hljs-regexp,
-:root[data-theme='dark'] .hljs-attr { color: #a5d6ff; }
-:root[data-theme='dark'] .hljs-number, :root[data-theme='dark'] .hljs-literal,
-:root[data-theme='dark'] .hljs-symbol, :root[data-theme='dark'] .hljs-bullet,
-:root[data-theme='dark'] .hljs-link { color: #79c0ff; }
-:root[data-theme='dark'] .hljs-title, :root[data-theme='dark'] .hljs-name,
-:root[data-theme='dark'] .hljs-section { color: #d2a8ff; }
-:root[data-theme='dark'] .hljs-attribute, :root[data-theme='dark'] .hljs-variable,
-:root[data-theme='dark'] .hljs-template-variable, :root[data-theme='dark'] .hljs-built_in { color: #ffa657; }
 :root[data-theme='dark'] .hljs-addition { color: #aff5b4; background: #033a16; }
 :root[data-theme='dark'] .hljs-deletion { color: #ffdcd7; background: #67060c; }

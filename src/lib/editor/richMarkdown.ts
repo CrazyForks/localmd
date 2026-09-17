@@ -161,6 +161,12 @@ const linkMark = Decoration.mark({ class: 'cm-md-link' })
 const codeMark = Decoration.mark({ class: 'cm-md-code' })
 const headingLine = (level: number) => Decoration.line({ class: `cm-md-h${level}` })
 const quoteLine = Decoration.line({ class: 'cm-md-quote' })
+/** An ordered item's `1.` — syntax to the highlighter, which mutes it with the
+ *  rest of the marks, but the preview sets it as text, so it is told apart. */
+const orderedMark = Decoration.mark({ class: 'cm-md-ol' })
+const frontmatterLine = Decoration.line({ class: 'cm-md-fm' })
+/** A table's header row: a heading to the highlighter, a `th` to the preview. */
+const tableHeadLine = Decoration.line({ class: 'cm-md-th' })
 /** The first line of a list item — where the preview's `li { my-1 }` puts its
  *  air. Unlike the bullet it is pushed whether or not the selection is on the
  *  line, because a line that grows and shrinks as the cursor crosses it is the
@@ -307,6 +313,10 @@ function buildDecorations(view: EditorView, opts: RichMarkdownOptions): Decorati
   const shown = (pos: number) => reveal.has(lineOf(pos))
   const protectedRanges: Protected = []
 
+  if (fmEnd) {
+    for (let n = 1; n <= lineOf(fmEnd); n++) marks.push(frontmatterLine.range(doc.line(n).from))
+  }
+
   for (const { from, to } of view.visibleRanges) {
     syntaxTree(view.state).iterate({
       from,
@@ -331,6 +341,11 @@ function buildDecorations(view: EditorView, opts: RichMarkdownOptions): Decorati
           while (end < doc.length && doc.sliceString(end, end + 1) === ' ') end++
           marks.push(hidden.range(node.from, end))
           return
+        }
+
+        // No `return`: the cells inside still get their inline decorations.
+        if (name === 'TableHeader') {
+          marks.push(tableHeadLine.range(doc.lineAt(node.from).from))
         }
 
         if (name === 'Blockquote') {
@@ -380,7 +395,9 @@ function buildDecorations(view: EditorView, opts: RichMarkdownOptions): Decorati
 
         if (name === 'ListMark') {
           const text = doc.sliceString(node.from, node.to)
-          if (!shown(node.from) && /^[-*+]$/.test(text)) {
+          if (!/^[-*+]$/.test(text)) {
+            marks.push(orderedMark.range(node.from, node.to))
+          } else if (!shown(node.from)) {
             marks.push(bullet.range(node.from, node.to))
           }
           return

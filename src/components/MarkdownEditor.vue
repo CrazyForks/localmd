@@ -13,19 +13,14 @@ import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirro
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { yamlFrontmatter } from '@codemirror/lang-yaml'
 import { languages } from '@codemirror/language-data'
-import {
-  syntaxHighlighting,
-  defaultHighlightStyle,
-  HighlightStyle,
-  LanguageDescription,
-} from '@codemirror/language'
+import { syntaxHighlighting, HighlightStyle, LanguageDescription } from '@codemirror/language'
 import { tags } from '@lezer/highlight'
 import {
   autocompletion,
   type CompletionContext,
   type CompletionResult,
 } from '@codemirror/autocomplete'
-import { oneDarkTheme, oneDarkHighlightStyle } from '@codemirror/theme-one-dark'
+import { oneDarkTheme } from '@codemirror/theme-one-dark'
 import { useFilesStore } from '@/stores/files'
 import { useThemeStore } from '@/stores/theme'
 import { useSettingsStore } from '@/stores/settings'
@@ -74,47 +69,63 @@ function richExt(): Extension {
 }
 
 /**
- * What oneDark gets wrong for a notes app: it paints headings and property
- * names coral, so every page opens with its own title — and its whole
- * frontmatter block — shouting in red before a word of the writing is read.
- * That is a colour for errors, and a heading is not one.
+ * One highlighter for both themes, in the app's own colours — which are the
+ * preview's: every value is a CSS variable the preview's rules read too, so the
+ * two cannot drift and neither needs a second palette for dark.
  *
- * Built from oneDark's own specs with ours appended rather than layered as a
- * second highlighter: two highlighters both emit their class onto the same
- * span, and which colour lands is then a question about the order rules were
- * written into the stylesheet — a coin toss to build a look on. Appended
- * inside ONE style, the later spec for a tag simply replaces the earlier one.
- * The rest of the theme stays as it is: a hand-rolled palette for every tag in
- * every language would be a far larger thing to own. The app's own accent takes
- * the headings, and the frontmatter drops to a comment-grey — it is metadata
- * about the page, not part of it, and reads best as the quietest thing on
- * screen.
+ * It replaces CodeMirror's default style in light mode and oneDark's in dark,
+ * which agreed with the preview about nothing and with each other about little:
+ * underlined headings in one, coral headings and grey links in the other, and
+ * two more sets of code colours beside the preview's highlight.js ones.
+ *
+ * Markdown first, then code. The code half follows main.css's `.hljs-*` groups
+ * (keyword / string / number / title / variable) rather than CodeMirror's finer
+ * tags, because the thing being matched is a highlight.js rendering.
  */
-const darkHighlight = HighlightStyle.define([
-  ...oneDarkHighlightStyle.specs,
+const appHighlight = HighlightStyle.define([
+  { tag: tags.heading, color: 'rgb(var(--c-fg-0))', fontWeight: 'bold' },
+  { tag: tags.strong, fontWeight: 'bold' },
+  { tag: tags.emphasis, fontStyle: 'italic' },
+  { tag: tags.strikethrough, textDecoration: 'line-through' },
+  { tag: [tags.link, tags.url], color: 'rgb(var(--c-accent))' },
+  { tag: tags.quote, color: 'rgb(var(--c-fg-2))' },
+  // The syntax itself — `#`, `**`, `>`, a fence and its language, a rule. Only
+  // ever on screen where the preview has nothing to compare it with.
   {
-    tag: [
-      tags.heading,
-      tags.heading1,
-      tags.heading2,
-      tags.heading3,
-      tags.heading4,
-      tags.heading5,
-      tags.heading6,
-    ],
-    color: 'rgb(var(--c-accent))',
-    fontWeight: 'bold',
-  },
-  {
-    tag: [tags.propertyName, tags.definition(tags.propertyName)],
+    tag: [tags.processingInstruction, tags.labelName, tags.contentSeparator],
     color: 'rgb(var(--c-fg-3))',
   },
+
+  { tag: tags.comment, color: 'var(--hl-comment)', fontStyle: 'italic' },
+  { tag: [tags.keyword, tags.typeName, tags.meta], color: 'var(--hl-keyword)' },
+  {
+    tag: [tags.string, tags.regexp, tags.attributeName, tags.definition(tags.propertyName)],
+    color: 'var(--hl-string)',
+  },
+  {
+    tag: [tags.number, tags.bool, tags.null, tags.atom, tags.escape, tags.character],
+    color: 'var(--hl-number)',
+  },
+  {
+    tag: [
+      tags.function(tags.variableName),
+      tags.function(tags.propertyName),
+      tags.className,
+      tags.tagName,
+    ],
+    color: 'var(--hl-title)',
+  },
+  {
+    tag: [tags.standard(tags.variableName), tags.special(tags.variableName)],
+    color: 'var(--hl-variable)',
+  },
+  { tag: tags.invalid, color: 'rgb(var(--c-removed))' },
 ])
 
-function themeExt() {
-  return theme.isDark
-    ? [oneDarkTheme, syntaxHighlighting(darkHighlight)]
-    : syntaxHighlighting(defaultHighlightStyle)
+/** oneDark still draws dark mode's chrome — caret, selection, the completion
+ *  list. Its colours for the writing itself are overridden below and above. */
+function themeExt(): Extension {
+  return theme.isDark ? oneDarkTheme : []
 }
 
 /**
@@ -131,6 +142,10 @@ function themeExt() {
  */
 const gutterTheme = Prec.high(
   EditorView.theme({
+    // The preview's text colour; oneDark has an ivory of its own.
+    '&': {
+      color: 'rgb(var(--c-fg-1))',
+    },
     '.cm-gutters': {
       backgroundColor: 'transparent',
       border: 'none',
@@ -248,6 +263,7 @@ function createView(): void {
         autocompletion({ override: [wikilinkCompletions], icons: false }),
         EditorView.lineWrapping,
         themeCompartment.of(themeExt()),
+        syntaxHighlighting(appHighlight),
         gutterTheme,
         EditorView.updateListener.of((u) => {
           if (u.docChanged) files.onEdited(u.state.doc.toString())
