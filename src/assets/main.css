@@ -872,9 +872,72 @@
   height: 100%;
   background-color: transparent !important;
 }
+
+/* Where the chrome sits, and where the text sits — which are not the same
+   place, and asking one column to be both left the numbers and the scrollbar
+   floating in the middle of the pane.
+   The scrollbar decides the rest, so it goes first: `.cm-scroller` is what
+   actually scrolls (CodeMirror asks for `overflow-x`, and the vertical axis
+   follows it), so the scroller has to BE the pane — unpadded — for its
+   scrollbar to be drawn at the pane's right edge. The gutter is that scroller's
+   first child, which puts it at the far left, and with no padding around it, it
+   runs the pane's full height.
+   The text is then centred in what is left beside the numbers, not in the
+   pane: the numbers are chrome, like the sidebar, and the column sits in the
+   middle of the space that is the writing's own. */
 .cm-editor .cm-scroller {
   font-family: 'Menlo', 'Monaco', 'ui-monospace', monospace;
   font-size: 13px;
+  /* The preview's LINE BOX — 14px × `leading-relaxed` (1.625) = 22.75px — not
+     its ratio, because this editor is set a size smaller: 13px monospace reads
+     denser than 14px sans, so matching the ratio alone still landed tighter
+     than the preview it is compared against. Same height in px, same rhythm on
+     either side of the Edit toggle.
+     CodeMirror's base theme puts 1.4 on this same element; its selector is one
+     class to our two, so this wins without `!important`. */
+  line-height: 1.75;
+  /* The app's own scrollbar, so the editor's edge looks like every other
+     panel's — and, where scrollbars take layout space, takes the same width out
+     of the column that the preview's scroller takes out of its. */
+  scrollbar-width: thin;
+  scrollbar-color: rgb(var(--c-border)) transparent;
+}
+/* A fixed width, sized for four digits: a gutter that widened for one more
+   would push the column sideways as the document grew. The theme keeps the
+   numbers right-aligned against the text side. */
+.cm-editor .cm-gutters {
+  width: 2.5rem;
+}
+/* The content is the preview's column: `max-w-3xl`, centred, `px-8 py-6`. The
+   vertical padding is the content's and not the scroller's because CodeMirror
+   measures it and starts the numbers the same distance down — on the scroller
+   it would push the gutter itself off the pane's top edge. `flex` is spelled
+   out because the base theme grows this item and its `cm-lineWrapping` class
+   shrinks it: it takes the space beside the gutter up to the column's width,
+   and the auto margins split whatever is over. */
+.cm-editor .cm-content {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 48rem;
+  margin: 0 auto;
+  padding: 1.5rem 2rem;
+}
+
+/* What the preview gives `li { my-1 }`: air between the items of a list, which
+   the editor otherwise has none of — list items are consecutive source lines
+   with nothing but the line box between them. On the FIRST line of the item
+   only, so a wrapped or multi-line item does not get a gap down its middle,
+   and sized as twice one margin so the space between two items comes out the
+   same as the preview's two.
+   Unconditional, unlike the bullet: this is a line decoration that stays put
+   when the selection lands on the line, so nothing resizes under the cursor
+   (see the note above the cm-md-h rules).
+   Two classes because CodeMirror's base theme pads every `.cm-line` and its
+   sheet is injected into the head at runtime, i.e. after this one — one class
+   against its one class loses to document order, and the rule does nothing. */
+.cm-editor .cm-md-li,
+.cm-editor .cm-gutterElement.cm-md-li-gutter {
+  padding-top: 0.6em;
 }
 .cm-editor.cm-focused {
   outline: none !important;

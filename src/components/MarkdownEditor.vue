@@ -1,7 +1,14 @@
 <script setup lang="ts">
 import { onMounted, onBeforeUnmount, ref, watch } from 'vue'
-import { EditorView, keymap, lineNumbers, highlightActiveLine } from '@codemirror/view'
-import { EditorState, Compartment, type Extension } from '@codemirror/state'
+import {
+  EditorView,
+  keymap,
+  gutters,
+  lineNumbers,
+  highlightActiveLine,
+  highlightActiveLineGutter,
+} from '@codemirror/view'
+import { EditorState, Compartment, Prec, type Extension } from '@codemirror/state'
 import { defaultKeymap, history, historyKeymap, indentWithTab } from '@codemirror/commands'
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown'
 import { yamlFrontmatter } from '@codemirror/lang-yaml'
@@ -110,23 +117,49 @@ function themeExt() {
     : syntaxHighlighting(defaultHighlightStyle)
 }
 
-/** Softer line-number gutter — muted, borderless and transparent so it recedes
- *  behind the text. Added after the theme compartment so it overrides oneDark. */
-const gutterTheme = EditorView.theme({
-  '.cm-gutters': {
-    backgroundColor: 'transparent',
-    border: 'none',
-    color: 'rgb(var(--c-fg-3) / 0.45)',
-  },
-  '.cm-lineNumbers .cm-gutterElement': {
-    color: 'rgb(var(--c-fg-3) / 0.45)',
-    fontVariantNumeric: 'tabular-nums',
-  },
-  '.cm-activeLineGutter': {
-    backgroundColor: 'transparent',
-    color: 'rgb(var(--c-fg-2))',
-  },
-})
+/**
+ * The editor's chrome, quietened: a muted, borderless, transparent gutter that
+ * recedes behind the text, and the line you are on marked by its number alone.
+ * No band across the writing — the pale line both the base theme and oneDark
+ * paint has no counterpart in the preview, and the point of this editor is that
+ * the words look the same either side of the toggle.
+ *
+ * Raised in precedence because position in the extension list does not do it:
+ * placed after the theme compartment this lost to oneDark, whose grey gutter
+ * and active-line band both showed through in dark mode while light mode, with
+ * only the base theme to beat, looked right.
+ */
+const gutterTheme = Prec.high(
+  EditorView.theme({
+    '.cm-gutters': {
+      backgroundColor: 'transparent',
+      border: 'none',
+      color: 'rgb(var(--c-fg-3) / 0.45)',
+    },
+    // The number column fills the gutter, or `textAlign` below has nothing to
+    // align within: a gutter is as wide as its widest number otherwise.
+    '.cm-lineNumbers': {
+      flexGrow: '1',
+    },
+    '.cm-lineNumbers .cm-gutterElement': {
+      color: 'rgb(var(--c-fg-3) / 0.45)',
+      fontVariantNumeric: 'tabular-nums',
+      // The gutter has a fixed width (main.css); the numbers keep to the text
+      // side of it.
+      textAlign: 'right',
+      paddingRight: '0.5rem',
+    },
+    '.cm-activeLine': {
+      backgroundColor: 'transparent',
+    },
+    // Spelled out in full: the number rule above is two classes deep, and
+    // would otherwise keep the active number as grey as the rest.
+    '.cm-lineNumbers .cm-gutterElement.cm-activeLineGutter': {
+      backgroundColor: 'rgb(var(--c-accent) / 0.15)',
+      color: 'rgb(var(--c-accent))',
+    },
+  }),
+)
 
 /** Language for a file: markdown (with wikilink support) for .md, otherwise the
  *  CodeMirror language matching the filename, or plain text. Keeps the markdown
@@ -200,8 +233,15 @@ function createView(): void {
     state: EditorState.create({
       doc: files.content,
       extensions: [
+        // Not sticky: stickiness exists so the numbers survive horizontal
+        // scrolling, and this editor wraps its lines, so there is nothing to
+        // scroll sideways. Unfixed, the gutter is an ordinary flex child and
+        // lays out where the CSS says. Said through `gutters`, because
+        // `lineNumbers` takes no such option.
+        gutters({ fixed: false }),
         lineNumbers(),
         highlightActiveLine(),
+        highlightActiveLineGutter(),
         history(),
         keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
         languageCompartment.of([]),
@@ -300,5 +340,12 @@ watch(
 </script>
 
 <template>
-  <div ref="host" class="h-full panel-scroll selectable" />
+  <!-- The editor is the pane, and everything about where things sit inside it
+       is the CSS's business (see the `.cm-scroller` block in main.css): the
+       scrollbar at the right edge, the numbers at the left one, the text in the
+       preview's column. Two classes that used to be here and may not come back:
+       `max-w-3xl` would move the scrollbar in from the edge along with the
+       column, and `panel-scroll` would style a scrollbar that never scrolls —
+       the scroller inside CodeMirror is the one that does. -->
+  <div ref="host" class="h-full selectable" />
 </template>

@@ -17,13 +17,21 @@
 import {
   Decoration,
   EditorView,
+  GutterMarker,
   ViewPlugin,
+  gutterLineClass,
   WidgetType,
   type DecorationSet,
   type PluginValue,
   type ViewUpdate,
 } from '@codemirror/view'
-import { StateField, type EditorState, type Extension, type Range } from '@codemirror/state'
+import {
+  RangeSet,
+  StateField,
+  type EditorState,
+  type Extension,
+  type Range,
+} from '@codemirror/state'
 import { syntaxTree } from '@codemirror/language'
 import katex from 'katex'
 import { findInlineMath, findBlockMath, type MathSpan, type Protected } from './mathScan'
@@ -153,6 +161,18 @@ const linkMark = Decoration.mark({ class: 'cm-md-link' })
 const codeMark = Decoration.mark({ class: 'cm-md-code' })
 const headingLine = (level: number) => Decoration.line({ class: `cm-md-h${level}` })
 const quoteLine = Decoration.line({ class: 'cm-md-quote' })
+/** The first line of a list item — where the preview's `li { my-1 }` puts its
+ *  air. Unlike the bullet it is pushed whether or not the selection is on the
+ *  line, because a line that grows and shrinks as the cursor crosses it is the
+ *  one thing these decorations may not do. */
+const itemLine = Decoration.line({ class: 'cm-md-li' })
+
+/** The same air, given to the item's line NUMBER. A gutter element is as tall
+ *  as its line but sets its number at the top, so padding above the text alone
+ *  leaves every list item's number riding higher than the item it counts. */
+const itemGutterMarker = new (class extends GutterMarker {
+  elementClass = 'cm-md-li-gutter'
+})()
 
 /**
  * Where a file's YAML frontmatter ends, or 0 when it has none. Same rule as
@@ -248,6 +268,36 @@ function blockMathLines(state: EditorState): Set<number> {
   return lines
 }
 
+/**
+ * A field, not part of the view plugin below: the gutter reads its line classes
+ * from a facet, and a facet can be fed by a field but not by a plugin. It walks
+ * the whole tree rather than the viewport for the same reason, which costs one
+ * pass per parse — the tree is already built, this only reads it.
+ */
+function itemGutterMarkers(state: EditorState): RangeSet<GutterMarker> {
+  const fmEnd = frontmatterEnd(state)
+  const starts: number[] = []
+  syntaxTree(state).iterate({
+    enter(node) {
+      if (fmEnd && node.to <= fmEnd) return false
+      if (node.name !== 'ListItem') return
+      const at = state.doc.lineAt(node.from).from
+      // `- - nested` opens two items on one line; a range set takes one each.
+      if (starts[starts.length - 1] !== at) starts.push(at)
+    },
+  })
+  return RangeSet.of(starts.map((at) => itemGutterMarker.range(at)))
+}
+
+const itemGutterField = StateField.define<RangeSet<GutterMarker>>({
+  create: itemGutterMarkers,
+  update(value, tr) {
+    const parsed = syntaxTree(tr.state) !== syntaxTree(tr.startState)
+    return tr.docChanged || parsed ? itemGutterMarkers(tr.state) : value
+  },
+  provide: (f) => gutterLineClass.from(f),
+})
+
 function buildDecorations(view: EditorView, opts: RichMarkdownOptions): DecorationSet {
   const marks: Range<Decoration>[] = []
   const reveal = revealedLines(view.state)
@@ -318,6 +368,14 @@ function buildDecorations(view: EditorView, opts: RichMarkdownOptions): Decorati
         if (name === 'FencedCode' || name === 'CodeText') {
           protectedRanges.push({ from: node.from, to: node.to })
           return
+        }
+
+        // Deliberately no `return`: a list item contains the nested lists and
+        // the task markers below it, and skipping the children would take
+        // their decorations with it. The item's own first line is the one the
+        // marker sits on, which is the line the preview's margin hangs above.
+        if (name === 'ListItem') {
+          marks.push(itemLine.range(doc.lineAt(node.from).from))
         }
 
         if (name === 'ListMark') {
@@ -457,5 +515,5 @@ export function richMarkdown(opts: RichMarkdownOptions): Extension {
     },
   })
 
-  return [blockMathField, plugin, clicks]
+  return [blockMathField, itemGutterField, plugin, clicks]
 }
