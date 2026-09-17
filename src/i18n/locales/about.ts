@@ -149,6 +149,8 @@ export default {
     closingTitle: 'Open a folder. Start thinking.',
     footer: 'localmd · an agent lives in your folder',
     feedback: 'Report a problem',
+    vsNotebooklm: 'vs NotebookLM',
+    whyChromium: 'Why Chrome or Edge?',
   },
   zh: {
     showLabel: '一点就通',
@@ -237,5 +239,7 @@ export default {
     closingTitle: '打开一个文件夹，开始思考。',
     footer: 'localmd · 一个住在你文件夹里的 agent',
     feedback: '反馈问题',
+    vsNotebooklm: '对比 NotebookLM',
+    whyChromium: '为什么只支持 Chrome 和 Edge？',
   },
 };

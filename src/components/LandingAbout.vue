@@ -477,6 +477,22 @@ const whyPlain = computed(() => ({ one: t('about.why1'), three: t('about.why3') 
             >{{ $t('about.feedback') }}</a
           >
         </div>
+        <!-- The site's other pages (`site/`, built by scripts/static-pages.ts).
+             Plain links to plain HTML: they are not part of the app, and a
+             reader who follows one leaves it. English only, like the pages. -->
+        <div class="mt-3 text-xs text-fg-3">
+          <a
+            href="/alternatives/notebooklm"
+            class="underline decoration-fg-3/40 underline-offset-2 hover:text-fg-1"
+            >{{ $t('about.vsNotebooklm') }}</a
+          >
+          <span class="mx-1.5 opacity-40">·</span>
+          <a
+            href="/why-chrome-only"
+            class="underline decoration-fg-3/40 underline-offset-2 hover:text-fg-1"
+            >{{ $t('about.whyChromium') }}</a
+          >
+        </div>
       </div>
     </section>
   </div>

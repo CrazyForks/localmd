@@ -13,3 +13,5 @@ Allow: /
 
 # The OAuth callback is a redirect target, not a page.
 Disallow: /oauth/
+
+Sitemap: https://localmd.app/sitemap.xml

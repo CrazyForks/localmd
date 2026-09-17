@@ -5,6 +5,7 @@ import { fileURLToPath, URL } from 'node:url'
 import { readFile, readdir } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
+import { loadStaticPages, staticPages } from './scripts/static-pages'
 
 /**
  * Dev-only sink for the demo KB's document index.
@@ -150,6 +151,13 @@ function staticLandingCopy(): Plugin {
         }`,
         ...(hasLlmsTxt ? ['        <a href="/llms.txt">llms.txt</a>'] : []),
         '      </p>',
+        // The site's other pages, so a crawler that starts at the root and
+        // runs no JS still finds them.
+        '      <p>',
+        loadStaticPages()
+          .map((pg) => `        <a href="/${pg.path}">${esc(pg.title)}</a>`)
+          .join(' ·\n'),
+        '      </p>',
       ].join('\n')
 
       const block = `<noscript>\n    <main>\n${body}\n    </main>\n  </noscript>`
@@ -291,6 +299,7 @@ export default defineConfig({
   plugins: [
     demoIndexWriter(),
     staticLandingCopy(),
+    staticPages(),
     pdfjsWasmAssets(),
     vue(),
     VitePWA({
@@ -339,12 +348,17 @@ export default defineConfig({
         // pay for them before the app is usable. pdf.js already fetches them
         // lazily — only when it meets an image in one of those formats — so the
         // only thing making them eager was this glob.
-        globIgnores: ['**/pdfjs-wasm/**'],
+        //
+        // The static pages (`site/`) stay out as well. They are read once, by
+        // someone arriving from a search result who has never run the app — a
+        // visitor with a service worker is by definition not that reader, and
+        // should not download pages they will not open.
+        globIgnores: ['**/pdfjs-wasm/**', ...loadStaticPages().map((p) => `${p.path}/index.html`)],
         // The app is one URL. Workbox's default sends EVERY navigation it does
         // not recognise to the precached index.html, which is right for an app
-        // with client-side routes and wrong here: it answered `/llms.txt` with
-        // the app shell for anyone who had visited before. Only the root is the
-        // app; everything else goes to the network.
+        // with client-side routes and wrong here: it answered `/llms.txt` and
+        // the static pages with the app shell for anyone who had visited
+        // before. Only the root is the app; everything else goes to the network.
         navigateFallbackAllowlist: [/^\/(index\.html)?(\?.*)?$/],
         // Kept after first use, so a scanned document opened once still opens
         // offline. CacheFirst because the URL is versioned by the build.

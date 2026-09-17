@@ -9,6 +9,10 @@
  * If you deploy your own copy, this is the file to point somewhere else.
  */
 
+/** Where this build is served from. The static pages under `site/` need it for
+ *  their canonical links and the sitemap, both of which must be absolute. */
+export const SITE_URL = 'https://localmd.app'
+
 /** Issue tracker: this repository's own, so a report lands where the people
  *  who could fix it already are. */
 export const FEEDBACK_URL = 'https://github.com/whitefoxx/localmd/issues'

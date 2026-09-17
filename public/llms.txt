@@ -83,3 +83,10 @@ directly at their prices. localmd adds nothing on top and meters nothing.
 - App: https://localmd.app
 - Demo (no setup): https://localmd.app/?demo=1
 - Source (MIT): https://github.com/whitefoxx/localmd
+- Compared with NotebookLM / Gemini Notebook, in full:
+  https://localmd.app/alternatives/notebooklm
+- Compared with ChatPDF: https://localmd.app/alternatives/chatpdf
+- Compared with Notion AI: https://localmd.app/alternatives/notion-ai
+- Alongside Obsidian and its AI plugins:
+  https://localmd.app/vs/obsidian-ai-plugins
+- Why it needs Chrome or Edge: https://localmd.app/why-chrome-only
