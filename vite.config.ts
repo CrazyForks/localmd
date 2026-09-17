@@ -340,6 +340,12 @@ export default defineConfig({
         // lazily — only when it meets an image in one of those formats — so the
         // only thing making them eager was this glob.
         globIgnores: ['**/pdfjs-wasm/**'],
+        // The app is one URL. Workbox's default sends EVERY navigation it does
+        // not recognise to the precached index.html, which is right for an app
+        // with client-side routes and wrong here: it answered `/llms.txt` with
+        // the app shell for anyone who had visited before. Only the root is the
+        // app; everything else goes to the network.
+        navigateFallbackAllowlist: [/^\/(index\.html)?(\?.*)?$/],
         // Kept after first use, so a scanned document opened once still opens
         // offline. CacheFirst because the URL is versioned by the build.
         runtimeCaching: [
