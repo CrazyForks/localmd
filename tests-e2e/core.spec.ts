@@ -24,6 +24,39 @@ test('scaffold initializes the KB and opens the index', async ({ page }) => {
   await expect(page.locator('aside').getByText('AGENTS.md', { exact: true })).toBeVisible()
 })
 
+/**
+ * The turn that ends at the reply-length ceiling.
+ *
+ * A thinking model can spend the whole output budget on chain-of-thought and
+ * stop mid-word having written nothing. Hitting the ceiling is a NORMAL finish
+ * — no exception, no error recorded — so before this notice existed the turn
+ * arrived as an empty bubble and was indistinguishable from a crash.
+ *
+ * The two ceilings need opposite answers, which is the point of the assertion
+ * below: Continue is right for the step limit and useless here, because the
+ * budget that ran out is per-reply and running again spends the same amount on
+ * the same thinking.
+ */
+test('a turn cut off by the reply-length limit says so, and offers the setting', async ({
+  page,
+}) => {
+  await page.getByRole('button', { name: /Initialize knowledge base/ }).click()
+  const input = page.getByPlaceholder(/Ask the agent/)
+  await input.fill('capped')
+  await input.press('Enter')
+
+  await expect(page.getByText(/reply-length limit/)).toBeVisible({ timeout: 10_000 })
+  // Not the step-limit notice, and emphatically not its Continue button.
+  await expect(page.getByText(/step limit/)).toHaveCount(0)
+  await expect(page.getByRole('button', { name: /Continue/ })).toHaveCount(0)
+
+  // The one move that changes the outcome: Settings, open on the pane that
+  // holds the ceiling — not Settings in general, which is most of why setup
+  // feels hard.
+  await page.getByRole('button', { name: /Raise the limit/ }).click()
+  await expect(page.getByText('Model profiles')).toBeVisible()
+})
+
 test('chat streams a mock reply', async ({ page }) => {
   await page.getByRole('button', { name: /Initialize knowledge base/ }).click()
   const input = page.getByPlaceholder(/Ask the agent/)

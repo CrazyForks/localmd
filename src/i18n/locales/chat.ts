@@ -69,6 +69,9 @@ export default {
     noModelAction: 'Configure a model',
     noModelDemo: 'Or try a demo knowledge base',
     stoppedAtLimit: 'Stopped at the step limit — the work may be unfinished.',
+    stoppedAtOutputLimit:
+      'Stopped at the reply-length limit — the model used its whole budget before finishing. A thinking model can spend all of it before writing anything.',
+    raiseOutputLimit: 'Raise the limit',
     continueRun: 'Continue',
     continueWord: 'Continue where you left off.',
     setupSave: 'Save',
@@ -201,6 +204,9 @@ export default {
     noModelAction: '去配置模型',
     noModelDemo: '或者先试试示例知识库',
     stoppedAtLimit: '达到单轮步数上限而停下 —— 事情可能没做完。',
+    stoppedAtOutputLimit:
+      '达到单次回复的 token 上限而停下 —— 预算在写完之前就用光了。推理模型可能把额度全用在思考上，一个字都没写出来。',
+    raiseOutputLimit: '调大上限',
     continueRun: '继续',
     continueWord: '接着刚才没做完的继续。',
     setupSave: '保存',

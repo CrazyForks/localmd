@@ -7,6 +7,8 @@
  *   think xN <text>          …with <text> repeated N times, no pacing delay
  *                            (a long thought, at a rate a real provider
  *                            reaches — for responsiveness probes)
+ *   capped                   finish the way the reply-length ceiling does:
+ *                            thinking only, cut mid-word, no reply at all
  *   hang [ms]                a tool call that ignores the abort signal (stop tests)
  *   write <path> <content>   run the real write_file tool, then confirm
  *   delete <path>            run the real delete_path tool (recursive)
@@ -102,6 +104,19 @@ export async function runMockTurn(opts: MockTurnOptions): Promise<ModelMessage[]
     }
     reply = 'Done thinking'
     await streamText(reply, opts.onEvent)
+  } else if (script === 'capped') {
+    // The reply-length ceiling, reproduced. A thinking model can spend the whole
+    // budget on chain-of-thought and be cut off mid-word having written nothing
+    // — and because hitting the ceiling is a NORMAL finish, nothing throws and
+    // no error is recorded, so the turn arrives as an empty bubble. run.ts
+    // reaches this by reading finishReason; the mock emits the same event, so
+    // the notice that rescues it can be driven in a browser.
+    for (const chunk of 'Scene 1: the prior. Layout: left panel at x 30..'.match(/.{1,8}/gs) ?? []) {
+      opts.onEvent({ type: 'thinking', delta: chunk })
+      await sleep(0)
+    }
+    opts.onEvent({ type: 'limit', steps: 1, cap: 'output' })
+    reply = ''
   } else if (script.startsWith('hang')) {
     // Stands in for the tools that cannot be cancelled — a push already in
     // flight, a document index mid-parse: it keeps going after the abort, and

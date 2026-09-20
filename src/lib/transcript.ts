@@ -101,6 +101,19 @@ function renderMessage(m: UiMessage): string {
       lines.push(`> ⏸ Asked to ${verb} ${p.path} — ${outcome}`, '')
     }
   }
+  // The turn stopped at a ceiling rather than at a conclusion. Without this the
+  // saved copy is silent about it — which is how a reply-length cut-off read as
+  // a crash for a whole afternoon: an assistant section with a tool row or two
+  // and nothing else, and no way to tell that from a turn that simply had
+  // little to say.
+  if (m.stoppedAtLimit) {
+    lines.push(
+      m.stoppedAtLimit === 'output'
+        ? '> ⏹ Stopped at the reply-length limit — the model used its whole budget before finishing.'
+        : '> ⏹ Stopped at the step limit — the work may be unfinished.',
+      '',
+    )
+  }
   if (m.error) lines.push(`> ⚠ ${m.error}`, '')
   return lines.join('\n')
 }

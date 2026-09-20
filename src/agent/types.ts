@@ -69,10 +69,16 @@ export type AgentEvent =
   /** The paused write above was decided (or the turn died first) — stamps the
    *  card so it becomes a read-only record of what happened. */
   | { type: 'approval_result'; id: string; decision: ApprovalDecision }
-  /** The turn stopped because it ran out of steps, not because the work was
-   *  done. Without this the two are indistinguishable: the model's last
-   *  sentence often promises an action that never came, and any plan it was
-   *  keeping is left mid-flight. */
-  | { type: 'limit'; steps: number }
+  /** The turn stopped at a cap, not because the work was done. Without this
+   *  the two are indistinguishable: the model's last sentence often promises
+   *  an action that never came, and any plan it was keeping is left mid-flight.
+   *
+   *  `cap` says WHICH ceiling, because the two need opposite answers. `steps`
+   *  means the turn did its 25 steps of real work and has more to do — asking
+   *  it to continue is the move. `output` means the model hit its token
+   *  ceiling, which on a reasoning model it can reach while still thinking,
+   *  having written nothing at all: continuing just spends the same budget on
+   *  the same thoughts. The only thing that helps is a larger ceiling. */
+  | { type: 'limit'; steps: number; cap: 'steps' | 'output' }
 
 export type AgentEventHandler = (e: AgentEvent) => void

@@ -253,7 +253,13 @@ export async function runTurn(opts: RunTurnOptions): Promise<ModelMessage[]> {
    * cannot change the tool set the provider already cached. */
   const runSegment = async (
     messages: ModelMessage[],
-  ): Promise<{ steps: ModelMessage[]; error: unknown; aborted: boolean; stepCount: number }> => {
+  ): Promise<{
+    steps: ModelMessage[]
+    error: unknown
+    aborted: boolean
+    stepCount: number
+    finishReason: string | undefined
+  }> => {
   let streamError: unknown = null
   const result = streamText({
     model,
@@ -294,6 +300,9 @@ export async function runTurn(opts: RunTurnOptions): Promise<ModelMessage[]> {
 
   let aborted = false
   let steps = 0
+  // The LAST step's reason is the one that ended the turn; earlier steps finish
+  // with 'tool-calls' on the way through.
+  let finishReason: string | undefined
   for await (const part of result.fullStream) {
     switch (part.type) {
       case 'text-delta':
@@ -312,6 +321,7 @@ export async function runTurn(opts: RunTurnOptions): Promise<ModelMessage[]> {
         break
       case 'finish-step':
         steps++
+        finishReason = part.finishReason
         opts.onEvent(usageEvent(part.usage))
         break
       case 'abort':
@@ -332,7 +342,7 @@ export async function runTurn(opts: RunTurnOptions): Promise<ModelMessage[]> {
     } catch (err) {
       streamError ??= err
     }
-    return { steps: done, error: streamError, aborted, stepCount: steps }
+    return { steps: done, error: streamError, aborted, stepCount: steps, finishReason }
   }
 
   // Last stop before the wire. A lone surrogate — half an emoji left behind by
@@ -384,7 +394,7 @@ export async function runTurn(opts: RunTurnOptions): Promise<ModelMessage[]> {
     segment = await runSegment(messages)
   }
 
-  const { error: streamError, aborted, stepCount } = segment
+  const { error: streamError, aborted, stepCount, finishReason } = segment
   if (streamError) throw streamError
   // The AI SDK ends the stream gracefully on abort (emits an 'abort' part) and
   // response.messages may hold a half-finished turn — a tool-call with no result
@@ -396,9 +406,19 @@ export async function runTurn(opts: RunTurnOptions): Promise<ModelMessage[]> {
     throw err
   }
 
-  // Ran to the cap rather than to a conclusion — say so, or the user reads an
+  // Ran to a cap rather than to a conclusion — say so, or the user reads an
   // interrupted turn as a finished one.
-  if (stepCount >= MAX_ITERATIONS) opts.onEvent({ type: 'limit', steps: stepCount })
+  //
+  // 'length' is the quieter of the two and was silent until it bit: a reasoning
+  // model can spend the whole output ceiling on chain-of-thought and stop
+  // mid-word without emitting a single visible character or tool call. Nothing
+  // throws — hitting the ceiling is a normal finish — so the turn arrived as an
+  // empty bubble with no error, four times in a row, and read as a crash.
+  if (stepCount >= MAX_ITERATIONS) {
+    opts.onEvent({ type: 'limit', steps: stepCount, cap: 'steps' })
+  } else if (finishReason === 'length') {
+    opts.onEvent({ type: 'limit', steps: stepCount, cap: 'output' })
+  }
 
   // `response.messages` is the LAST step's messages, not the turn's. On any
   // multi-step turn that is just the closing assistant text, so persisting it

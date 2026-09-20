@@ -63,6 +63,29 @@ function errorStep(err: unknown) {
   }
 }
 
+/** A step the model ends by exhausting its output ceiling: reasoning only, cut
+ *  mid-thought, with no text and no tool call. That is what a thinking model
+ *  actually returns when the ceiling is reached before it starts answering —
+ *  and, crucially, it is a NORMAL finish, so nothing throws. */
+function lengthCappedStep() {
+  return {
+    stream: convertArrayToReadableStream<LanguageModelV3StreamPart>([
+      { type: 'stream-start', warnings: [] },
+      { type: 'reasoning-start', id: 'r1' },
+      { type: 'reasoning-delta', id: 'r1', delta: 'Scene 1: the prior. Layout: left panel at x 30..' },
+      { type: 'reasoning-end', id: 'r1' },
+      {
+        type: 'finish',
+        finishReason: { unified: 'length', raw: undefined },
+        usage: {
+          inputTokens: { total: 10, noCache: 10, cacheRead: 0, cacheWrite: 0 },
+          outputTokens: { total: 8192, text: 0, reasoning: 8192 },
+        },
+      },
+    ]),
+  }
+}
+
 const BIG = 'x'.repeat(40_000)
 
 /** History holding an oversized tool result that a prune can reclaim. */
@@ -213,5 +236,38 @@ describe('context-overflow recovery', () => {
     // Nothing pruned, nothing announced: the recovery path is inert.
     expect(JSON.stringify(history)).toContain(BIG)
     expect(history.slice(0, messages.length)).toEqual(messages)
+  })
+})
+
+
+/**
+ * Lives beside the overflow tests because it shares their harness and their
+ * subject: both are what runTurn does when it meets a ceiling. This one is the
+ * quieter ceiling — the reply-length budget, which a reasoning model can spend
+ * entirely on chain-of-thought, stopping mid-word without a single visible
+ * character. Hitting it is a normal finish, so nothing throws and no error is
+ * recorded; before this event the turn simply arrived empty and read as a
+ * crash. It did, four times in a row, on 2026-09-20.
+ */
+describe('the reply-length ceiling', () => {
+  beforeEach(() => {
+    setActivePinia(createPinia())
+    doStream.mockReset()
+  })
+
+  it('reports which ceiling ended the turn, not just that something did', async () => {
+    doStream.mockResolvedValueOnce(lengthCappedStep())
+    const { events, promise } = run([{ role: 'user', content: 'draw the animation' }])
+    await promise
+    expect(events.filter((e) => e.type === 'limit')).toEqual([
+      { type: 'limit', steps: 1, cap: 'output' },
+    ])
+  })
+
+  it('stays silent when the model simply finished', async () => {
+    doStream.mockResolvedValueOnce(textStep('here it is'))
+    const { events, promise } = run([{ role: 'user', content: 'hi' }])
+    await promise
+    expect(events.some((e) => e.type === 'limit')).toBe(false)
   })
 })

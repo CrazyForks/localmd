@@ -141,4 +141,42 @@ describe('renderTranscript', () => {
     expect(r).toContain('> ⚙ git_push — push to origin ⏹ stopped')
     expect(r).not.toContain('✗')
   })
+
+  /**
+   * The saved copy used to be silent about a turn that stopped at a ceiling,
+   * which is how a reply-length cut-off read as a crash: an assistant section
+   * with a tool row or two and nothing after it, indistinguishable from a turn
+   * that simply had little to say.
+   */
+  it('says which ceiling stopped a turn, so the saved copy is not silent about it', () => {
+    const capped = renderTranscript(
+      session({
+        uiMessages: [
+          { id: 1, role: 'assistant', parts: [], stoppedAtLimit: 'output' },
+        ] as UiMessage[],
+      }),
+    )
+    expect(capped).toContain('> ⏹ Stopped at the reply-length limit')
+
+    const steps = renderTranscript(
+      session({
+        uiMessages: [{ id: 1, role: 'assistant', parts: [], stoppedAtLimit: 'steps' }] as UiMessage[],
+      }),
+    )
+    expect(steps).toContain('> ⏹ Stopped at the step limit')
+
+    // `true` is what was written before the two could be told apart, and it
+    // always meant the step limit.
+    const legacy = renderTranscript(
+      session({
+        uiMessages: [{ id: 1, role: 'assistant', parts: [], stoppedAtLimit: true }] as UiMessage[],
+      }),
+    )
+    expect(legacy).toContain('> ⏹ Stopped at the step limit')
+
+    const ordinary = renderTranscript(
+      session({ uiMessages: [{ id: 1, role: 'assistant', parts: [] }] as UiMessage[] }),
+    )
+    expect(ordinary).not.toContain('⏹')
+  })
 })

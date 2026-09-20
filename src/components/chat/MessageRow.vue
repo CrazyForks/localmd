@@ -23,6 +23,7 @@
 import { computed, ref } from 'vue'
 import { useChatStore, type MessagePart, type UiMessage } from '@/stores/chat'
 import { useCitationsStore } from '@/stores/citations'
+import { useUiStore } from '@/stores/ui'
 import { useFilesStore } from '@/stores/files'
 import { renderMarkdown } from '@/lib/markdown'
 import { copyText, flashCopy, handleCodeCopy } from '@/lib/copyCode'
@@ -65,6 +66,7 @@ const props = defineProps<{
 const emit = defineEmits<{ copied: []; reAsk: []; continueTurn: [] }>()
 
 const chat = useChatStore()
+const ui = useUiStore()
 const files = useFilesStore()
 const citations = useCitationsStore()
 /** Citation chips get their quoted passage into the tooltip on hover. */
@@ -576,9 +578,10 @@ async function copyMessage(e: MouseEvent): Promise<void> {
       </details>
       <div v-if="m.error" class="text-xs text-removed break-words">{{ m.error }}</div>
       <!-- Ran out of steps, not out of work. Say so and offer the obvious
-           next move, rather than letting it read as a finished answer. -->
+           next move, rather than letting it read as a finished answer.
+           `true` is the pre-output-cap shape and meant the step limit. -->
       <div
-        v-if="m.stoppedAtLimit && !m.error"
+        v-if="m.stoppedAtLimit && m.stoppedAtLimit !== 'output' && !m.error"
         class="flex items-center gap-2 flex-wrap text-xs text-fg-3 mt-1"
       >
         <span class="codicon codicon-sm codicon-debug-pause" />
@@ -588,6 +591,21 @@ async function copyMessage(e: MouseEvent): Promise<void> {
           :disabled="chat.running"
           @click="emit('continueTurn')"
         >{{ $t('chat.continueRun') }}</button>
+      </div>
+      <!-- The other ceiling, and deliberately NOT offering Continue: the budget
+           that ran out is per-reply, so running again spends the same amount on
+           the same thinking. The only move that changes the outcome is a bigger
+           ceiling, so that is the one offered. -->
+      <div
+        v-else-if="m.stoppedAtLimit === 'output' && !m.error"
+        class="flex items-center gap-2 flex-wrap text-xs text-fg-3 mt-1"
+      >
+        <span class="codicon codicon-sm codicon-debug-pause" />
+        <span>{{ $t('chat.stoppedAtOutputLimit') }}</span>
+        <button
+          class="text-accent hover:underline"
+          @click="ui.openSettings('models')"
+        >{{ $t('chat.raiseOutputLimit') }}</button>
       </div>
       <div v-if="chat.running && last && !m.parts.length" class="text-xs text-fg-3">
         {{ $t('chat.thinkingEllipsis') }}

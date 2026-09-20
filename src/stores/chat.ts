@@ -210,7 +210,10 @@ export interface UiMessage {
    *  notice with a Continue action — otherwise a truncated turn is
    *  indistinguishable from a completed one, and any plan it kept looks stalled
    *  when the work simply stopped mid-flight. */
-  stoppedAtLimit?: boolean
+  /** Which ceiling ended this turn, when one did. `true` is the shape written
+   *  before the output ceiling could be told from the step one — read it as
+   *  'steps', which is what it always meant. */
+  stoppedAtLimit?: 'steps' | 'output' | true
 }
 
 interface ChatSession {
@@ -1153,7 +1156,7 @@ export const useChatStore = defineStore('chat', () => {
         )
         if (p) p.decision = e.decision
       } else if (e.type === 'limit') {
-        assistant.stoppedAtLimit = true
+        assistant.stoppedAtLimit = e.cap
       } else {
         // Only id-bearing tool calls get the loading/timer treatment.
         parts.push(
