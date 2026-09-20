@@ -20,8 +20,23 @@ import { TRIAL_PRESET } from '@/lib/trial'
  * Output-token ceiling for a profile that does not set one. Lives here rather
  * than in the agent runtime because the settings form has to be able to say
  * the number out loud: "Default" in a box tells nobody what they are getting.
+ *
+ * 8192 was chosen when a model's whole output budget went to the answer. On a
+ * reasoning model it does not: thinking and text come out of the same ceiling,
+ * and a hard question can spend all of it before the first visible character —
+ * which is silent, because reaching the ceiling is a normal finish. That is now
+ * reported (see the `limit` event's `output` cap), but a default that routinely
+ * needs raising is a bad default.
+ *
+ * Why not higher still: this number is the fallback for EVERY provider, and one
+ * above a model's own ceiling is a 400 on a setup that worked yesterday. The
+ * two failure modes are not symmetric — too low now says so and names the
+ * setting, too high just breaks — so this sits where essentially every current
+ * chat model accepts it rather than at the top of what the best ones allow.
+ * A profile that wants more says so in Settings → Models; a reasoning model on
+ * a long task may well want 64k or more.
  */
-export const DEFAULT_MAX_TOKENS = 8192
+export const DEFAULT_MAX_TOKENS = 32768
 
 /** Which AI SDK provider package drives a preset. Everything except
  *  'openai-compatible' has its base URL + adaptation baked into the package. */
