@@ -4,6 +4,7 @@ import ePub, { EpubCFI, type Book, type Rendition, type NavItem } from 'epubjs'
 import * as fs from '@/lib/fs'
 import { useFilesStore } from '@/stores/files'
 import { useCitationsStore } from '@/stores/citations'
+import { useKbIndexStore } from '@/stores/kbIndex'
 import { useThemeStore } from '@/stores/theme'
 import { useSettingsStore } from '@/stores/settings'
 import { useTtsStore } from '@/stores/tts'
@@ -965,6 +966,9 @@ async function runIndex(rebuild = false, confirmed = false): Promise<void> {
     indexState.value = 'indexed'
     if (!s.cached) indexOutdated.value = false
     indexDetail.value = `${s.blockCount} blocks`
+    // Publish the new index: kbIndex is what a citation jump reads to
+    // choose between books, and nothing else would tell it this one exists.
+    await useKbIndexStore().refresh()
   } catch (err) {
     indexState.value = 'none'
     indexDetail.value = (err as Error).message

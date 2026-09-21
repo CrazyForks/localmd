@@ -18,6 +18,7 @@
 import { ref, watch, onMounted, onBeforeUnmount, nextTick } from 'vue'
 import { useFilesStore } from '@/stores/files'
 import { useCitationsStore } from '@/stores/citations'
+import { useKbIndexStore } from '@/stores/kbIndex'
 import { useTtsStore } from '@/stores/tts'
 import { READ_ALOUD_ENABLED } from '@/lib/tts'
 import * as fs from '@/lib/fs'
@@ -253,6 +254,9 @@ async function runIndex(
   indexMsg.value = t('viewers.docx.indexing')
   try {
     const summary = await indexDocument(path, undefined, { rebuild })
+    // Publish the new index: kbIndex is what a citation jump reads to
+    // choose between books, and nothing else would tell it this one exists.
+    await useKbIndexStore().refresh()
     if (token !== loadToken) return
     if (!summary.cached) indexOutdated.value = false
     indexMsg.value = t('viewers.docx.indexed', { n: summary.blockCount })

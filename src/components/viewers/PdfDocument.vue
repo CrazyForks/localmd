@@ -45,6 +45,7 @@ import { pdfPage as pageMemory, rememberPdfPage } from '@/lib/viewMemory'
 import { useTtsStore } from '@/stores/tts'
 import { READ_ALOUD_ENABLED } from '@/lib/tts'
 import { useFilesStore } from '@/stores/files'
+import { useKbIndexStore } from '@/stores/kbIndex'
 import { useUiStore } from '@/stores/ui'
 import { useComposerStore } from '@/stores/composer'
 import { baseName } from '@/lib/wiki'
@@ -1329,6 +1330,9 @@ async function startOcr(): Promise<void> {
       indexMsg.value = t('viewers.scanned.done', { n: result.blockCount })
       msgTimer = window.setTimeout(() => (indexMsg.value = ''), 8000)
     }
+    // Publish the new index: kbIndex is what a citation jump reads to
+    // choose between books, and nothing else would tell it this one exists.
+    await useKbIndexStore().refresh()
   } catch (err) {
     // Back to the setup step, not to the offer: whoever cancelled or hit an
     // error was standing there a moment ago, and the language they picked is
@@ -1403,6 +1407,9 @@ async function runIndex(auto = false, rebuild = false, confirmed = false): Promi
         ''
       msgTimer = window.setTimeout(() => (indexMsg.value = ''), 5000)
     }
+    // Publish the new index: kbIndex is what a citation jump reads to
+    // choose between books, and nothing else would tell it this one exists.
+    await useKbIndexStore().refresh()
   } catch (err) {
     indexState.value = 'error'
     indexMsg.value = (err as Error).message || t('viewers.pdf.indexFailed')
