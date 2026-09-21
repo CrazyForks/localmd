@@ -68,16 +68,26 @@ async function importInto(page: Page, files: string[]): Promise<void> {
   await page.locator('input[type="file"]').first().setInputFiles(files)
 }
 
-/** The palette finds a document's text only once its index exists, so it is
- *  also the readiness signal for "this book has been indexed". */
+/**
+ * The palette finds a document's text only once its index exists, so it is
+ * also the readiness signal for "this book has been indexed".
+ *
+ * It must match a RESULT row — `data-kind="doc"` is a hit inside a document
+ * index — and not merely the phrase somewhere in the panel. The palette always
+ * offers "Ask the agent: <what you typed>", so the looser assertion matched the
+ * echo of the query itself and passed before indexing had even started. The
+ * test then clicked to the next book, cancelling the index it was waiting for,
+ * and failed much later and somewhere else: at a citation whose block id only
+ * one book turned out to hold.
+ */
 async function waitIndexed(page: Page, phrase: string): Promise<void> {
   await page.getByTitle(/^Search \(/).click()
   const input = page.getByPlaceholder(/Search files and content/)
   await expect(input).toBeVisible()
   await input.fill(phrase)
-  await expect(page.locator('[data-palette]').getByText(phrase, { exact: false }).first()).toBeVisible({
-    timeout: 20_000,
-  })
+  await expect(
+    page.locator('[data-palette] [data-kind="doc"]').filter({ hasText: phrase }).first(),
+  ).toBeVisible({ timeout: 20_000 })
   await page.keyboard.press('Escape')
 }
 
